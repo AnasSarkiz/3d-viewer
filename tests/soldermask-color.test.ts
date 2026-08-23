@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test"
+import { expect, spyOn, test } from "bun:test"
 import type { PcbBoard } from "circuit-json"
 import * as THREE from "three"
 import { getSoldermaskPalette } from "../src/textures/soldermask/soldermask-drawing"
@@ -29,6 +29,12 @@ const createBoard = ({
 
 const toSrgbHex = (color: THREE.Color) =>
   `#${color.getHexString(THREE.SRGBColorSpace)}`
+
+const expectResolvedHex = (requestedColor: string, expectedHex: string) => {
+  const resolvedColor = resolveSoldermaskColor(requestedColor)
+  if (!resolvedColor) throw new Error(`Expected ${requestedColor} to resolve`)
+  expect(toSrgbHex(resolvedColor)).toBe(expectedHex)
+}
 
 test("resolves the documented non-green soldermask presets", () => {
   for (const [preset, expectedHex] of Object.entries(SOLDERMASK_PRESET_HEX)) {
@@ -69,13 +75,39 @@ test("preserves the existing material colors without an explicit preset", () => 
   })
 })
 
-test("falls back to the existing material color for unknown strings", () => {
-  expect(resolveSoldermaskColor("kicad:custom_solder_mask")).toBeNull()
+test("supports custom CSS colors", () => {
+  expectResolvedHex("#123456", "#123456")
+  expectResolvedHex("rebeccapurple", "#663399")
+  expectResolvedHex("rgb(18, 52, 86)", "#123456")
+  expectResolvedHex("hsl(210, 65.4%, 20.4%)", "#123456")
   expect(
-    getSoldermaskPalette(
-      createBoard({ solderMaskColor: "kicad:custom_solder_mask" }),
-    ).soldermask,
-  ).toBe("rgb(15, 79, 48)")
+    getSoldermaskPalette(createBoard({ solderMaskColor: "#123456" })),
+  ).toMatchObject({
+    soldermask: "rgb(18,52,86)",
+    soldermaskOverCopper: "rgb(78,77,88)",
+  })
+})
+
+test("falls back to the existing material color for unsupported strings", () => {
+  const warnSpy = spyOn(console, "warn").mockImplementation(() => {})
+  try {
+    for (const unsupportedColor of [
+      "kicad:custom_solder_mask",
+      "rgba(18, 52, 86, 0.5)",
+      "#12345678",
+      "var(--mask)",
+    ]) {
+      expect(resolveSoldermaskColor(unsupportedColor)).toBeNull()
+    }
+    expect(
+      getSoldermaskPalette(
+        createBoard({ solderMaskColor: "kicad:custom_solder_mask" }),
+      ).soldermask,
+    ).toBe("rgb(15, 79, 48)")
+    expect(warnSpy).not.toHaveBeenCalled()
+  } finally {
+    warnSpy.mockRestore()
+  }
 })
 
 test("uses calibrated preset colors over substrate and masked copper", () => {

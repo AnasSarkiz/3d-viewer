@@ -54,6 +54,15 @@ test("preserves legacy edges for default and unsupported colors", () => {
   ])
 })
 
+test("uses custom CSS soldermask colors for board edges", () => {
+  const edgeColor = getBoardEdgeColor({
+    material: "fr4",
+    solder_mask_color: "#123456",
+  })
+
+  expect(toSrgbHex(edgeColor)).toBe("#123456")
+})
+
 test("keeps the FR4 physical material while applying its edge color", () => {
   const edgeColor = getBoardEdgeColor({
     material: "fr4",

@@ -12,6 +12,12 @@ export const SOLDERMASK_PRESET_HEX = {
 
 const DEFAULT_SOLDERMASK_OPACITY = 0.875
 
+const CSS_HEX_COLOR_PATTERN = /^#(?:[\da-f]{3}|[\da-f]{6})$/i
+const CSS_RGB_INTEGER_PATTERN = /^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/i
+const CSS_RGB_PERCENT_PATTERN = /^rgb\(\s*\d+%\s*,\s*\d+%\s*,\s*\d+%\s*\)$/i
+const CSS_HSL_PATTERN =
+  /^hsl\(\s*\d*\.?\d+\s*,\s*\d*\.?\d+%\s*,\s*\d*\.?\d+%\s*\)$/i
+
 type SoldermaskColorPreset = keyof typeof SOLDERMASK_PRESET_HEX
 
 const SOLDERMASK_PRESET_OPACITY: Partial<
@@ -24,25 +30,36 @@ const SOLDERMASK_PRESET_OPACITY: Partial<
 }
 
 /**
- * Resolves an explicitly requested non-green mask color. Green, missing,
- * not_specified, and unknown strings return null so callers preserve their
- * material-based legacy color.
+ * Resolves an explicitly requested non-green mask color. Presets use their
+ * calibrated display colors, while Three-supported CSS colors remain
+ * supported. Green, missing, not_specified, and unsupported strings return
+ * null so callers preserve their material-based legacy color.
  */
 export const resolveSoldermaskColor = (
   requestedColor?: string | null,
 ): THREE.Color | null => {
   const normalizedColor = requestedColor?.trim()
-  if (
-    !normalizedColor ||
-    normalizedColor.toLowerCase() === "green" ||
-    normalizedColor.toLowerCase() === "not_specified"
-  ) {
+  if (!normalizedColor) {
     return null
   }
 
-  const presetName = normalizedColor.toLowerCase() as SoldermaskColorPreset
+  const lowercaseColor = normalizedColor.toLowerCase()
+  if (lowercaseColor === "green" || lowercaseColor === "not_specified") {
+    return null
+  }
+
+  const presetName = lowercaseColor as SoldermaskColorPreset
   const presetColor = SOLDERMASK_PRESET_HEX[presetName]
-  return presetColor ? new THREE.Color(presetColor) : null
+  if (presetColor) return new THREE.Color(presetColor)
+
+  const isCssColor =
+    Object.hasOwn(THREE.Color.NAMES, lowercaseColor) ||
+    CSS_HEX_COLOR_PATTERN.test(normalizedColor) ||
+    CSS_RGB_INTEGER_PATTERN.test(normalizedColor) ||
+    CSS_RGB_PERCENT_PATTERN.test(normalizedColor) ||
+    CSS_HSL_PATTERN.test(normalizedColor)
+
+  return isCssColor ? new THREE.Color(lowercaseColor) : null
 }
 
 export const resolveSoldermaskOpacity = (
