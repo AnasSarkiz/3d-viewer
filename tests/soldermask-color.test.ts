@@ -78,11 +78,22 @@ test("falls back to the existing material color for unknown strings", () => {
   ).toBe("rgb(15, 79, 48)")
 })
 
-test("uses the explicit preset over substrate and masked copper", () => {
-  expect(
-    getSoldermaskPalette(createBoard({ solderMaskColor: "blue" })),
-  ).toMatchObject({
-    soldermask: "rgb(0,74,171)",
-    soldermaskOverCopper: "rgb(76,91,164)",
-  })
+test("uses calibrated preset colors over substrate and masked copper", () => {
+  const expectedPalettes = {
+    red: ["rgb(101,2,2)", "rgb(119,60,34)"],
+    blue: ["rgb(0,63,125)", "rgb(42,70,124)"],
+    purple: ["rgb(76,29,105)", "rgb(86,45,105)"],
+    black: ["rgb(7,16,20)", "rgb(22,23,22)"],
+    white: ["rgb(221,221,221)", "rgb(218,215,211)"],
+    yellow: ["rgb(220,200,74)", "rgb(218,197,76)"],
+  }
+
+  for (const [
+    solderMaskColor,
+    [soldermask, soldermaskOverCopper],
+  ] of Object.entries(expectedPalettes)) {
+    expect(
+      getSoldermaskPalette(createBoard({ solderMaskColor })),
+    ).toMatchObject({ soldermask, soldermaskOverCopper })
+  }
 })

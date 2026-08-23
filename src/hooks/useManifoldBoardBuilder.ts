@@ -9,10 +9,10 @@ import {
 } from "src/textures"
 import * as THREE from "three"
 import {
-  boardMaterialColors,
   colors as defaultColors,
   TRACE_TEXTURE_RESOLUTION,
 } from "../geoms/constants"
+import { getBoardEdgeColor } from "../utils/get-board-edge-color"
 import { getLayerTextureResolution } from "../utils/layer-texture-resolution"
 import { createManifoldBoard } from "../utils/manifold/create-manifold-board"
 import { processCutoutsForManifold } from "../utils/manifold/process-cutouts"
@@ -307,15 +307,9 @@ export const useManifoldBoardBuilder = (
       if (boardManifold) {
         const boardThreeMesh = boardManifold.getMesh()
         const finalBoardGeom = manifoldMeshToThreeGeometry(boardThreeMesh)
-        const matColorArray =
-          boardMaterialColors[boardData.material] ?? defaultColors.fr4Tan
         currentGeoms.board = {
           geometry: finalBoardGeom,
-          color: new THREE.Color(
-            matColorArray[0],
-            matColorArray[1],
-            matColorArray[2],
-          ),
+          color: getBoardEdgeColor(boardData),
           material: boardData.material,
           isFaux: isFauxBoard,
         }

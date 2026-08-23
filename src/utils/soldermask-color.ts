@@ -3,16 +3,25 @@ import * as THREE from "three"
 /** Non-green preset colors accepted by the board solderMaskColor prop. */
 export const SOLDERMASK_PRESET_HEX = {
   red: "#650202",
-  blue: "#004aab",
-  purple: "#15008a",
-  black: "#000000",
+  blue: "#003f7d",
+  purple: "#4c1d69",
+  black: "#071014",
   white: "#dddddd",
-  yellow: "#ae8000",
+  yellow: "#dcc84a",
 } as const
 
-export const SOLDERMASK_OPACITY = 0.875
+const DEFAULT_SOLDERMASK_OPACITY = 0.875
 
 type SoldermaskColorPreset = keyof typeof SOLDERMASK_PRESET_HEX
+
+const SOLDERMASK_PRESET_OPACITY: Partial<
+  Record<SoldermaskColorPreset, number>
+> = {
+  blue: 0.96,
+  purple: 0.96,
+  black: 0.99,
+  yellow: 0.92,
+}
 
 /**
  * Resolves an explicitly requested non-green mask color. Green, missing,
@@ -36,6 +45,15 @@ export const resolveSoldermaskColor = (
   return presetColor ? new THREE.Color(presetColor) : null
 }
 
+export const resolveSoldermaskOpacity = (
+  requestedColor?: string | null,
+): number => {
+  const presetName = requestedColor
+    ?.trim()
+    .toLowerCase() as SoldermaskColorPreset
+  return SOLDERMASK_PRESET_OPACITY[presetName] ?? DEFAULT_SOLDERMASK_OPACITY
+}
+
 /** Match yellow mask pixels before the existing copper-color heuristic. */
 export const isYellowSoldermaskColor = ({
   red,
@@ -46,17 +64,22 @@ export const isYellowSoldermaskColor = ({
   green: number
   blue: number
 }): boolean =>
-  Math.hypot(red - 174, green - 128, blue) < 4 ||
-  Math.hypot(red - 177, green - 133, blue - 34) < 4
+  Math.hypot(red - 220, green - 200, blue - 74) < 4 ||
+  Math.hypot(red - 218, green - 197, blue - 76) < 4
 
-export const compositeSoldermaskOverCopper = (
-  soldermaskColor: THREE.Color,
-  copperColor: THREE.Color,
-): THREE.Color =>
+export const compositeSoldermaskOverCopper = ({
+  soldermaskColor,
+  copperColor,
+  soldermaskOpacity,
+}: {
+  soldermaskColor: THREE.Color
+  copperColor: THREE.Color
+  soldermaskOpacity: number
+}): THREE.Color =>
   soldermaskColor
     .clone()
-    .multiplyScalar(SOLDERMASK_OPACITY)
-    .add(copperColor.clone().multiplyScalar(1 - SOLDERMASK_OPACITY))
+    .multiplyScalar(soldermaskOpacity)
+    .add(copperColor.clone().multiplyScalar(1 - soldermaskOpacity))
 
 export const soldermaskColorToCss = (color: THREE.Color): string => {
   const displayColor = color.clone().convertLinearToSRGB()

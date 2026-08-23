@@ -14,6 +14,7 @@ import type { OutlineBounds } from "../../utils/outline-bounds"
 import {
   compositeSoldermaskOverCopper,
   resolveSoldermaskColor,
+  resolveSoldermaskOpacity,
   soldermaskColorToCss,
 } from "../../utils/soldermask-color"
 
@@ -64,7 +65,13 @@ export const getSoldermaskPalette = (
   return {
     soldermask: soldermaskColorToCss(requestedSoldermaskColor),
     soldermaskOverCopper: soldermaskColorToCss(
-      compositeSoldermaskOverCopper(requestedSoldermaskColor, copperColor),
+      compositeSoldermaskOverCopper({
+        soldermaskColor: requestedSoldermaskColor,
+        copperColor,
+        soldermaskOpacity: resolveSoldermaskOpacity(
+          boardData.solder_mask_color,
+        ),
+      }),
     ),
     copper: toRgb(defaultColors.copper),
     transparent: "rgba(0,0,0,0)",
